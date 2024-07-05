@@ -2,10 +2,10 @@
 
 const express = require("express");
 const router = express.Router();
-const User = require("./models").User;
-const Course = require("./models").Course;
+const { User, Course } = require('./models');
 const { asyncHandler } = require("./middleware/async-handler");
 const { authenticateUser } = require("./middleware/auth-user");
+const bcrypt = require('bcryptjs'); // hashes passwords
 
 // USER GET route:  Returns the currently authenticated use using id, first name, last name, and email
 router.get("/users", authenticateUser, asyncHandler(async (req, res) => {
@@ -16,24 +16,24 @@ router.get("/users", authenticateUser, asyncHandler(async (req, res) => {
         lastName: user.lastName,
         emailAddress: user.emailAddress,
       });
+      console.log('Stored password:', user.password);
     })
   );
 
 // USER POST route: Creates a user, sets the Location header to "/", and returns no content 
 router.post('/users', asyncHandler(async (req, res) => {
     try {
-    // password hashed in the user Sequelize model!
-    await User.create(req.body);
-    res.status(201).set('Location', `/`).end();
-    } catch (err) {
-    if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
-        const errors = err.errors.map(err => err.message);
-        res.status(400).json({ errors });   
-    } else {
+      await User.create(req.body);
+      res.status(201).location('/').end();
+    } catch (error) {
+      if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+        const errors = error.errors.map(err => err.message);
+        res.status(400).json({ errors });
+      } else {
         throw error;
+      }
     }
-    }
-}));
+  }));
 
 // COURSES GET route: Returns a list of courses (including the associated User object)
 router.get("/courses", asyncHandler(async (req, res) => {
